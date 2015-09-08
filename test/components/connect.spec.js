@@ -441,7 +441,7 @@ describe('React', () => {
       outerComponent.setFoo('BAR');
       outerComponent.setFoo('DID');
 
-      expect(invocationCount).toEqual(2);
+      expect(invocationCount).toEqual(1);
     });
 
     it('should invoke mapState every time props are changed if it has a second argument', () => {
@@ -481,7 +481,7 @@ describe('React', () => {
       }
 
       let outerComponent;
-      TestUtils.renderIntoDocument(
+      let tree = TestUtils.renderIntoDocument(
         <ProviderMock store={store}>
           <OuterComponent ref={c => outerComponent = c} />
         </ProviderMock>
@@ -490,9 +490,9 @@ describe('React', () => {
       outerComponent.setFoo('BAR');
       outerComponent.setFoo('BAZ');
 
-      expect(invocationCount).toEqual(3);
+      expect(invocationCount).toEqual(1);
       expect(propsPassedIn).toEqual({
-        foo: 'BAZ'
+        foo: 'FOO'
       });
     });
 

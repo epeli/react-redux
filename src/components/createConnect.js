@@ -108,6 +108,7 @@ export default function createConnect(React) {
           super(props, context);
           this.version = version;
           this.store = props.store || context.store;
+          this.mapStateMemoize = null;
 
           invariant(this.store,
             `Could not find "store" in either the context or ` +
@@ -169,7 +170,12 @@ export default function createConnect(React) {
             return;
           }
 
-          this.setState({storeState: this.store.getState()});
+          const storeState = this.store.getState()
+          if (storeState !== this.state.storeState) {
+            this.mapStateMemoize = null;
+          }
+
+          this.setState({storeState});
         }
 
         getWrappedInstance() {
@@ -181,8 +187,12 @@ export default function createConnect(React) {
         }
 
         computeNextState() {
+          if (this.mapStateMemoize === null) {
+            this.mapStateMemoize = computeStateProps(this.state.storeState, this.props)
+          }
+
           return computeNextState(
-            computeStateProps(this.state.storeState, this.props),
+            this.mapStateMemoize,
             this.state.dispatchProps,
             this.props
           );
@@ -213,6 +223,8 @@ export default function createConnect(React) {
 
           // We are hot reloading!
           this.version = version;
+
+          this.mapStateMemoize = null;
 
           // Update the state and bindings.
           this.trySubscribe();
