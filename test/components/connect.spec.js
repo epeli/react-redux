@@ -490,7 +490,7 @@ describe('React', () => {
       outerComponent.setFoo('BAR');
       outerComponent.setFoo('BAZ');
 
-      expect(invocationCount).toEqual(4);
+      expect(invocationCount).toEqual(3);
       expect(propsPassedIn).toEqual({
         foo: 'BAZ'
       });
