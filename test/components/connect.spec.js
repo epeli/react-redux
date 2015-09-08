@@ -691,12 +691,12 @@ describe('React', () => {
         div
       );
 
-      expect(mapStateToPropsCalls).toBe(2);
+      expect(mapStateToPropsCalls).toBe(1);
       const spy = expect.spyOn(console, 'error');
       store.dispatch({ type: 'APPEND', body: 'a'});
       spy.destroy();
       expect(spy.calls.length).toBe(0);
-      expect(mapStateToPropsCalls).toBe(2);
+      expect(mapStateToPropsCalls).toBe(1);
     });
 
     it('should shallowly compare the selected state to prevent unnecessary updates', () => {
