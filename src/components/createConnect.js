@@ -37,11 +37,10 @@ export default function createConnect(React) {
     // Helps track hot reloading.
     const version = nextVersion++;
 
-    function computeStateProps(store, props) {
-      const state = store.getState();
+    function computeStateProps(storeState, props) {
       const stateProps = shouldUpdateStateProps ?
-        finalMapStateToProps(state, props) :
-        finalMapStateToProps(state);
+        finalMapStateToProps(storeState, props) :
+        finalMapStateToProps(storeState);
 
       invariant(
         isPlainObject(stateProps),
@@ -89,7 +88,8 @@ export default function createConnect(React) {
         };
 
         shouldComponentUpdate(nextProps, nextState) {
-          return !pure || !shallowEqual(this.state.props, nextState.props);
+          return !pure || !shallowEqual(this.props, nextProps) ||
+                          !shallowEqual(this.state, nextState);
         }
 
         constructor(props, context) {
@@ -104,48 +104,17 @@ export default function createConnect(React) {
             `or explicitly pass "store" as a prop to "${this.constructor.displayName}".`
           );
 
-          this.stateProps = computeStateProps(this.store, props);
-          this.dispatchProps = computeDispatchProps(this.store, props);
           this.state = {
-            props: this.computeNextState()
+            dispatchProps: computeDispatchProps(this.store, props),
+            storeState: this.store.getState()
           };
         }
 
-        computeNextState(props = this.props) {
-          return computeNextState(
-            this.stateProps,
-            this.dispatchProps,
-            props
-          );
-        }
-
-        updateStateProps(props = this.props) {
-          const nextStateProps = computeStateProps(this.store, props);
-          if (shallowEqual(nextStateProps, this.stateProps)) {
-            return false;
-          }
-
-          this.stateProps = nextStateProps;
-          return true;
-        }
 
         updateDispatchProps(props = this.props) {
-          const nextDispatchProps = computeDispatchProps(this.store, props);
-          if (shallowEqual(nextDispatchProps, this.dispatchProps)) {
-            return false;
-          }
-
-          this.dispatchProps = nextDispatchProps;
-          return true;
-        }
-
-        updateState(props = this.props) {
-          const nextState = this.computeNextState(props);
-          if (!shallowEqual(nextState, this.state.props)) {
-            this.setState({
-              props: nextState
-            });
-          }
+          this.setState({
+            dispatchProps: computeDispatchProps(this.store, props)
+          });
         }
 
         isSubscribed() {
@@ -172,15 +141,10 @@ export default function createConnect(React) {
 
         componentWillReceiveProps(nextProps) {
           if (!shallowEqual(nextProps, this.props)) {
-            if (shouldUpdateStateProps) {
-              this.updateStateProps(nextProps);
-            }
-
             if (shouldUpdateDispatchProps) {
               this.updateDispatchProps(nextProps);
             }
 
-            this.updateState(nextProps);
           }
         }
 
@@ -193,19 +157,28 @@ export default function createConnect(React) {
             return;
           }
 
-          if (this.updateStateProps()) {
-            this.updateState();
-          }
+          this.setState({storeState: this.store.getState()});
         }
 
         getWrappedInstance() {
           return this.refs.wrappedInstance;
         }
 
+        computeNextState() {
+          return computeNextState(
+            computeStateProps(this.state.storeState, this.props),
+            this.state.dispatchProps,
+            this.props
+          );
+        }
+
         render() {
+
+          const finalProps = this.computeNextState();
+
           return (
             <WrappedComponent ref='wrappedInstance'
-                              {...this.state.props} />
+                              {...finalProps} />
           );
         }
       }
@@ -221,9 +194,7 @@ export default function createConnect(React) {
 
           // Update the state and bindings.
           this.trySubscribe();
-          this.updateStateProps();
           this.updateDispatchProps();
-          this.updateState();
         };
       }
 
