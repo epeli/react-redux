@@ -23,6 +23,18 @@ export default function createConnect(React) {
   const { Component, PropTypes } = React;
   const storeShape = createStoreShape(PropTypes);
 
+  // Avoids rendering if the props did not change
+  class PureWrap extends Component {
+    shouldComponentUpdate(nextProps) {
+      return !shallowEqual(this.props.passProps, nextProps.passProps);
+    }
+    render() {
+      const PureWrappedComponent = this.props.component;
+      return <PureWrappedComponent ref='wrappedInstance' {...this.props.passProps} />;
+    }
+  }
+
+
   return function connect(mapStateToProps, mapDispatchToProps, mergeProps, options = {}) {
     const shouldSubscribe = Boolean(mapStateToProps);
     const finalMapStateToProps = mapStateToProps || defaultMapStateToProps;
@@ -161,6 +173,10 @@ export default function createConnect(React) {
         }
 
         getWrappedInstance() {
+          if (pure) {
+            return this.refs.wrappedInstance.refs.wrappedInstance;
+          }
+
           return this.refs.wrappedInstance;
         }
 
@@ -176,9 +192,15 @@ export default function createConnect(React) {
 
           const finalProps = this.computeNextState();
 
+          if (!pure) {
+            return <WrappedComponent {...finalProps} />;
+          }
+
           return (
-            <WrappedComponent ref='wrappedInstance'
-                              {...finalProps} />
+            <PureWrap
+              ref='wrappedInstance'
+              component={WrappedComponent}
+              passProps={finalProps} />
           );
         }
       }
