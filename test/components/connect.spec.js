@@ -1193,5 +1193,38 @@ describe('React', () => {
       TestUtils.Simulate.click(node);
       expect(childMapStateExecuted).toBe(true);
     });
+
+    it('should not render the wrapped component when mapState does not produce change', () => {
+      const store = createStore(stringBuilder);
+      let renderCalls = 0;
+      let mapStateCalls = 0;
+
+      @connect(() => {
+        mapStateCalls++;
+        return {}; // no change!
+      })
+      class Container extends Component {
+        render() {
+          renderCalls++;
+          return <Passthrough {...this.props} />;
+        }
+      }
+
+      TestUtils.renderIntoDocument(
+        <ProviderMock store={store}>
+          <Container />
+        </ProviderMock>
+      );
+
+      expect(renderCalls).toBe(1);
+      expect(mapStateCalls).toBe(1);
+
+      store.dispatch({ type: 'APPEND', body: 'a'});
+
+      // After store a change mapState has been called
+      expect(mapStateCalls).toBe(2);
+      // But render is not because it did not make any actual changes
+      expect(renderCalls).toBe(1);
+    });
   });
 });
