@@ -1148,5 +1148,51 @@ describe('React', () => {
       wrapper.setState({ value: 1 });
       expect(target.props.statefulValue).toEqual(1);
     });
+
+    it('should not pass stale data to mapState', () => {
+      const store = createStore(stringBuilder);
+      store.dispatch({ type: 'APPEND', body: 'initial'});
+      let childMapStateExecuted = false;
+
+      @connect(state => ({ string: state }) )
+      class Container extends Component {
+
+        emitChange() {
+          store.dispatch({ type: 'APPEND', body: 'changed'});
+        }
+
+        render() {
+          return (
+            <div>
+              <button ref="button" onClick={this.emitChange.bind(this)}>change</button>
+              <ChildContainer parentString={this.props.string} />
+            </div>
+          );
+        }
+      }
+
+      @connect((state, parentProps) => {
+        childMapStateExecuted = true;
+        // The state from parent props should always be consistent with the current state
+        expect(state).toEqual(parentProps.parentString);
+        return {};
+      })
+      class ChildContainer extends Component {
+        render() {
+          return <Passthrough {...this.props}/>;
+        }
+      }
+
+      const tree = TestUtils.renderIntoDocument(
+        <ProviderMock store={store}>
+          <Container />
+        </ProviderMock>
+      );
+
+      const container = TestUtils.findRenderedComponentWithType(tree, Container);
+      const node = React.findDOMNode(container.getWrappedInstance().refs.button);
+      TestUtils.Simulate.click(node);
+      expect(childMapStateExecuted).toBe(true);
+    });
   });
 });
