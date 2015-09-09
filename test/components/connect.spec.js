@@ -1151,7 +1151,7 @@ describe('React', () => {
     it('should not pass stale data to mapState', () => {
       const store = createStore(stringBuilder);
       store.dispatch({ type: 'APPEND', body: 'initial'});
-      let childMapStateExecuted = false;
+      let mapStateInvokes = 0;
 
       @connect(state => ({ string: state }) )
       class Container extends Component {
@@ -1171,7 +1171,7 @@ describe('React', () => {
       }
 
       @connect((state, parentProps) => {
-        childMapStateExecuted = true;
+        mapStateInvokes++;
         // The state from parent props should always be consistent with the current state
         expect(state).toEqual(parentProps.parentString);
         return {};
@@ -1191,7 +1191,15 @@ describe('React', () => {
       const container = TestUtils.findRenderedComponentWithType(tree, Container);
       const node = React.findDOMNode(container.getWrappedInstance().refs.button);
       TestUtils.Simulate.click(node);
-      expect(childMapStateExecuted).toBe(true);
+      expect(mapStateInvokes).toBe(2);
+
+      // The issue is not present when store updates are batched
+      React.unstable_batchedUpdates(() => {
+        store.dispatch({ type: 'APPEND', body: 'boo'});
+      });
+
+      expect(mapStateInvokes).toBe(3);
+
     });
 
     it('should not render the wrapped component when mapState does not produce change', () => {
