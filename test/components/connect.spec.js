@@ -1322,5 +1322,51 @@ describe('React', () => {
       // But render is not because it did not make any actual changes
       expect(renderCalls).toBe(1);
     });
+
+    it('does not break when dispatch is called from constructor', () => {
+      const store = createStore(stringBuilder);
+
+      @connect(state => ({ string: state }) )
+      class Container extends Component {
+        render() {
+          console.log("parent rendering", this.props.string);
+          return (
+            <div>
+              <Passthrough {...this.props}/>;
+              {this.props.string[0] === 'a' && <DispatchingChild {...this.props} />}
+            </div>
+          );
+        }
+      }
+
+      @connect()
+      class DispatchingChild extends Component {
+
+        constructor(props) {
+          super(props);
+          console.log("child constructor dispatch");
+          this.props.dispatch({ type: 'APPEND', body: 'b'});
+        }
+
+        render() {
+          console.log("child rendering");
+          return <Passthrough {...this.props}/>;
+        }
+
+      }
+
+      const div = document.createElement('div');
+      ReactDOM.render(
+        <ProviderMock store={store}>
+          <Container />
+        </ProviderMock>,
+        div
+      );
+
+      // ReactDOM.unstable_batchedUpdates(() => {
+          store.dispatch({ type: 'APPEND', body: 'a'});
+      // });
+
+    });
   });
 });
