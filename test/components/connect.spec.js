@@ -8,7 +8,7 @@ import { connect } from '../../src/index';
 
 describe('React', () => {
   describe('connect', () => {
-    jsdom();
+    jsdom({skipWindowCheck: true});
 
     class Passthrough extends Component {
       render() {
